@@ -1,0 +1,26 @@
+#preview {
+  width: 100%;
+}
+
+.flipped {
+  transform: scaleY(-1);
+}
+
+#textfields {
+  display:grid;
+  grid-template-columns: max-content auto;
+  grid-gap:5px;
+}
+#textfields label       { text-align:right; }
+#textfields label:after { content: ":"; }
+
+#controls {
+  display: grid;
+  grid-template-columns: auto max-content;
+  grid-gap:5px;
+}
+#controls input {min-width: 10em;}
+
+.max-width{
+  width: 100%;
+}

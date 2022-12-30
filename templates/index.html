@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+
+<form method="post" id="main-form" class="mt-3">
+    <div class="mb-3 row">
+        <label for="url" class="col-sm-2 col-form-label ">Url</label>
+        <div class="col-sm-10">
+            <input type="url" class="form-control post-on-enter" name="url" id="url" value="{{url}}" {% if recording %}
+                disabled {%endif%} required>
+        </div>
+    </div>
+
+    {% if not recording %}
+    <div class="mb-3 row">
+        <label for="path" class="col-sm-2 col-form-label ">Path</label>
+        <div class="col-sm-10">
+            <input type="text" class="form-control post-on-enter" name="path" id="path" value="{{path}}" required>
+        </div>
+    </div>
+    {% endif %}
+
+    <button type="submit" value="submit" hidden class="btn btn-outline-primary"
+        formaction="{{url_for('index')}}">Submit</button>
+
+    <div class="mb-3 row">
+        <div class="btn-group max-width " role="group" aria-label="Basic example">
+
+            {% if not recording %}
+            <button type="button" class="btn btn-outline-success"
+                formaction="{{url_for('record.start_record')}}">Record</button>
+            {% else %}
+            <button type="button" class="btn btn-outline-danger"
+                formaction="{{url_for('record.stop_record')}}">Stop</button>
+            {% endif %}
+            <button type="button" class="btn btn-outline-primary"
+                formaction="{{url_for('record.toggle_flip_image')}}">Flip</button>
+        </div>
+    </div>
+</form>
+<img id="preview" class="mb-3 {% if flip %}flipped{% endif %}" src="{{url}}">
+
+{% endblock %}
