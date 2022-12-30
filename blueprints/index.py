@@ -11,10 +11,6 @@ bp = Blueprint("index", __name__)
 @bp.route('/', methods=("GET", "POST"))
 @login_required
 def index():
-    if request.method == 'POST':
-        session_utils.set_url(request.form['url'])
-        session_utils.set_path(request.form['path'])
-
     url = session_utils.get_url()
     flip = session_utils.get_flip()
     return render_template('index.html',
@@ -25,15 +21,9 @@ def index():
                            )
 
 
-@bp.route('/', methods=('POST',))
+@bp.route('/on_enter_in_text', methods=("POST", ))
 @login_required
-def url_changed():
+def on_enter_in_text():
     session_utils.set_url(request.form['url'])
-    return redirect(url_for('index'))
-
-
-@bp.route('/', methods=('POST',))
-@login_required
-def path_changed():
     session_utils.set_path(request.form['path'])
     return redirect(url_for('index'))
