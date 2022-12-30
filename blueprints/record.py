@@ -1,11 +1,12 @@
 import pathlib
 import threading
+import time
 from flask import Blueprint, redirect, render_template, request, session, url_for
 import cv2
 
 from blueprints.auth import login_required
 import session_utils
-from utils import get_timestamp
+from utils import format_timestamp
 
 bp = Blueprint("record", __name__, url_prefix='/record')
 
@@ -23,36 +24,59 @@ def stop_writer():
         _writer.release()
 
 
-def record_thread(user_id: str, url: str, path: str):
+def record_thread(user_id: str, url: str, prefix: str):
     global _recording, _flip_image
 
-    capture = cv2.VideoCapture(url)
-    writer = None
+    if not prefix:
+        prefix = format_timestamp()
 
-    path: pathlib.Path = pathlib.Path("recordings").joinpath(
-        str(user_id)).joinpath(f'{path}_{get_timestamp()}.mp4')
-    path.parent.mkdir(exist_ok=True, parents=True)
+    writer = None
+    capture = None
+    last_timestamp = 0
+
+    def get_file(timestamp):
+        path: pathlib.Path = pathlib.Path("recordings").joinpath(
+            str(user_id)).joinpath(prefix).joinpath(f'{format_timestamp(timestamp)}.mp4')
+        path.parent.mkdir(exist_ok=True, parents=True)
+        return str(path)
+
+    def is_next_chunk(now):
+        difference = now - last_timestamp
+        return difference > 60
 
     try:
         while _recording[user_id]:
+            now = time.time()
+            if capture is None or is_next_chunk(now):
+                capture = cv2.VideoCapture(url)
+
             rval, frame = capture.read()
             if not rval:
                 continue
 
-            if writer == None:
+            if writer is None or is_next_chunk(now):
+                path = get_file(now)
+
                 height, width, _ = frame.shape
                 size = (width, height)
                 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-                writer = cv2.VideoWriter(str(path), fourcc, 20.0, size)
+                writer = cv2.VideoWriter(path, fourcc, 20.0, size)
 
             if _flip_image.get(user_id, False):
                 frame = cv2.flip(frame, 0)
 
+            if is_next_chunk(now):
+                last_timestamp = now
+
             writer.write(frame)
     finally:
         _recording[user_id] = False
+
         if writer is not None:
             writer.release()
+
+        if capture is not None:
+            capture.release()
 
 
 @ bp.route('/start', methods=("POST", ))
@@ -63,14 +87,14 @@ def start_record():
         return redirect(url_for('index'))
 
     url = request.form['url']
-    path = request.form['path']
+    prefix = request.form['prefix']
 
     session_utils.set_url(url)
-    session_utils.set_path(path)
+    session_utils.set_prefix(prefix)
 
     _recording[user_id] = True
     threading.Thread(target=record_thread,
-                     args=(user_id, url, path)).start()
+                     args=(user_id, url, prefix)).start()
 
     return redirect(url_for('index'))
 

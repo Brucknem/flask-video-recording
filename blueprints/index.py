@@ -15,7 +15,7 @@ def index():
     flip = session_utils.get_flip()
     return render_template('index.html',
                            url=url,
-                           path=session_utils.get_path(),
+                           prefix=session_utils.get_prefix(),
                            flip=flip,
                            recording=is_recording(session_utils.get_user_id())
                            )
@@ -25,5 +25,5 @@ def index():
 @login_required
 def on_enter_in_text():
     session_utils.set_url(request.form['url'])
-    session_utils.set_path(request.form['path'])
+    session_utils.set_prefix(request.form['prefix'])
     return redirect(url_for('index'))

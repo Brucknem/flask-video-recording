@@ -3,21 +3,17 @@ from flask import redirect, request, session, url_for
 
 
 DEFAULT_URL = 'http://192.168.178.20:5000/video_feed/pi2'
-DEFAULT_PATH = 'video'
+DEFAULT_PREFIX = ''
 DEFAULT_FLIP = False
 DEFAULT_RECORDING = False
-
-RECORD_URL_COOKIE = 'URL'
-RECORD_PATH_COOKIE = 'PATH'
-RECORD_FLIP_COOKIE = 'FLIP'
 
 
 def get_url():
     return session.get('url', DEFAULT_URL)
 
 
-def get_path():
-    return session.get('path', DEFAULT_PATH)
+def get_prefix():
+    return session.get('prefix', DEFAULT_PREFIX)
 
 
 def get_flip():
@@ -32,8 +28,8 @@ def set_url(value):
     session['url'] = str(value)
 
 
-def set_path(value):
-    session['path'] = str(value)
+def set_prefix(value):
+    session['prefix'] = str(value)
 
 
 def set_flip(value):
