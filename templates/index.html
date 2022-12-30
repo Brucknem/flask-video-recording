@@ -34,11 +34,23 @@
             <button type="submit" class="btn btn-outline-danger"
                 formaction="{{url_for('record.stop_record')}}">Stop</button>
             {% endif %}
-            <button type="submit" class="btn btn-outline-primary"
-                formaction="{{url_for('record.toggle_flip_image')}}">Flip</button>
+            <button onclick="on_click_handler()" class="btn btn-outline-primary"
+                hx-post="{{url_for('record.toggle_flip_image')}}" hx-swap="none">
+                Flip
+            </button>
         </div>
     </div>
 </form>
 <img id="preview" class="mb-3 {% if flip %}flipped{% endif %}" src="{{url}}">
-
+<script>
+    function on_click_handler(event) {
+        const flip_class = 'flipped';
+        const preview = document.getElementById('preview');
+        if (preview.classList.contains(flip_class)) {
+            preview.classList.remove(flip_class)
+        } else {
+            preview.classList.add(flip_class)
+        }
+    }
+</script>
 {% endblock %}

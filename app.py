@@ -10,7 +10,6 @@ from db import init_app
 from blueprints import auth
 from blueprints import index
 from blueprints import record
-import session_utils
 
 
 def create_app(test_config=None):
@@ -22,6 +21,7 @@ def create_app(test_config=None):
         # store the database in the instance folder
         DATABASE=os.path.join(
             app.instance_path, "flask-video-streaming.sqlite"),
+        RECORDINGS_FOLDER=os.path.join(app.root_path, "recordings")
     )
 
     if test_config is None:

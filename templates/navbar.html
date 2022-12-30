@@ -15,8 +15,9 @@
                     </a>
                     <ul class="dropdown-menu">
                         {%for path in my_recordings %}
-                        <li><a class="dropdown-item" href="#"
-                                download="{{ recordings_prefix }} / {{ path }}">{{path}}</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('index.download', path=path) }}"
+                                download>{{path}}</a>
+                        </li>
                         {% endfor %}
                         <li>
                             <hr class="dropdown-divider">

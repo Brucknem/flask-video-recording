@@ -42,7 +42,7 @@ def record_thread(user_id: str, url: str, prefix: str):
 
     def is_next_chunk(now):
         difference = now - last_timestamp
-        return difference > 60
+        return difference > 60 * 5
 
     try:
         while _recording[user_id]:
@@ -112,4 +112,4 @@ def toggle_flip_image():
     flip = session_utils.get_flip()
     _flip_image[session_utils.get_user_id()] = flip
 
-    return redirect(url_for('index'))
+    return "Success"
