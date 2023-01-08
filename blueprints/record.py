@@ -62,11 +62,14 @@ def record_thread(user_id: int, location: str):
                 writer = cv2.VideoWriter(path, fourcc, 20.0, size)
 
             if is_true(connection.get(user_id=user_id)['flip']):
-                frame = cv2.flip(frame, 0)
+                frame = cv2.flip(frame, -1)
 
             if is_next_chunk(last_timestamp, now):
                 last_timestamp = now
 
+            cv2.putText(frame, format_timestamp(now), (0, 24), cv2.FONT_HERSHEY_SIMPLEX,
+                        1, (255, 255, 255), 2, cv2.LINE_AA)
+            cv2.imwrite(path + 'pillar_text.jpg', frame)
             writer.write(frame)
         except Exception as e:
             logging.warn(f'Error while recording for user {user_id}: {e}')

@@ -13,7 +13,7 @@ CREATE TABLE user (
 CREATE TABLE user_data (
   user_id INTEGER PRIMARY KEY,
 
-  url TEXT DEFAULT "http://192.168.178.20:5000/video_feed/pi2",
+  url TEXT DEFAULT "http://192.168.178.72:5050/video_feed/pi2?resolution=high",
   prefix TEXT DEFAULT "video",
   flip BIT DEFAULT FALSE,
   recording BIT DEFAULT FALSE,
