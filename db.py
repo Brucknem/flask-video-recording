@@ -39,19 +39,17 @@ class DatabaseConnection:
         return result_row
 
     def _set(self, **kwargs):
-        keys = ', '.join(kwargs.keys())
-        values = ', '.join(kwargs.values())
-
-        keys = str(tuple(kwargs.keys()))
-        values = str(tuple(kwargs.values()))
+        keys = ', '.join(map(str, kwargs.keys()))
+        values = ', '.join(
+            map(lambda value: f"'{str(value)}'", kwargs.values()))
 
         self.connection.execute(
-            f"INSERT INTO {self.table_name} {keys} VALUES {values}",
+            f"INSERT INTO {self.table_name} ({keys}) VALUES ({values})",
         )
         self.connection.commit()
         return self.get(**kwargs)['user_id']
 
-    def update(self, user_id: Union[int, str], **kwargs):
+    def update(self, user_id: int, **kwargs):
         key_values = DatabaseConnection.convert_key_values(
             separator=', ', **kwargs)
 
@@ -75,10 +73,20 @@ class UserDatabaseConnection(DatabaseConnection):
         return super()._set(username=username, password=password)
 
 
+class UserdataDatabaseConnection(DatabaseConnection):
+
+    @property
+    def table_name(self):
+        return "user_data"
+
+    def set(self, user_id: int):
+        return super()._set(user_id=user_id)
+
+
 class Database:
     def __init__(self, location: str) -> None:
         self.user_db = UserDatabaseConnection(location)
-        self.user_data_db = None
+        self.user_data_db = UserdataDatabaseConnection(location)
 
     def init(self, schema: str = "schema.sql"):
         with open(schema) as f:

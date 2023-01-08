@@ -53,7 +53,7 @@ def register():
     if request.method == "POST":
         username = request.form["username"]
         password = request.form["password"]
-        db = get_db().user_db
+        db = get_db()
         error = None
 
         if not username:
@@ -63,8 +63,9 @@ def register():
 
         if error is None:
             try:
-                db.set(username=username,
-                       password=generate_password_hash(password))
+                user_id = db.user_db.set(username=username,
+                                         password=generate_password_hash(password))
+                db.user_data_db.set(user_id=user_id)
             except IntegrityError:
                 # The username was already taken, which caused the
                 # commit to fail. Show a validation error.
