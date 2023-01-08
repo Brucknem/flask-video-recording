@@ -26,6 +26,7 @@ def index():
     preview_url = str(values['url'])
     if (host := extract_host(preview_url)) in ['0.0.0.0', '127.0.0.1']:
         external_ip = socket.gethostbyname(socket.gethostname())
+        print("external_ip", external_ip)
         preview_url = preview_url.replace(host, external_ip)
 
     recordings = get_recordings(user_id)
