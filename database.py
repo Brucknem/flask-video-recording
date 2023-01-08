@@ -120,7 +120,7 @@ def init():
     get().init("schema.sql")
 
 
-@ click.command("init-db")
+@click.command("init-db")
 def init_db_command():
     """Clear existing data and create new tables."""
     init()

@@ -1,5 +1,6 @@
 import atexit
 import os
+from sqlite3 import OperationalError
 
 from flask import Flask
 
@@ -53,7 +54,10 @@ def create_app(test_config=None):
     # the tutorial the blog will be the main index
     app.add_url_rule("/", endpoint="index")
 
-    UserdataDatabaseConnection(app.config['DATABASE']).reset()
+    try:
+        UserdataDatabaseConnection(app.config['DATABASE']).reset()
+    except OperationalError as e:
+        print(f"Couldn't reset database: {e}")
 
     return app
 
