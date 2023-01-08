@@ -1,3 +1,4 @@
+import logging
 import pathlib
 import threading
 import time
@@ -5,8 +6,10 @@ from flask import Blueprint, redirect, render_template, request, session, url_fo
 import cv2
 
 from blueprints.auth import login_required
+from db import Database
 import session_utils
 from utils import format_timestamp
+import db
 
 bp = Blueprint("record", __name__, url_prefix='/record')
 
@@ -18,16 +21,14 @@ def is_recording(user_id: str):
     return _recording.get(user_id, False)
 
 
-def stop_writer():
-    global _writer
-    if _writer is not None:
-        _writer.release()
-
-
-def record_thread(user_id: str, url: str, prefix: str):
+def record_thread(connection, user_id: str, url: str, prefix: str):
     global _recording, _flip_image
 
-    if not prefix:
+    url = db.get_url(user_id, connection)
+
+    if prefix:
+        prefix = pathlib.Path(prefix) / format_timestamp()
+    else:
         prefix = format_timestamp()
 
     writer = None
@@ -35,24 +36,27 @@ def record_thread(user_id: str, url: str, prefix: str):
     last_timestamp = 0
 
     def get_file(timestamp):
-        path: pathlib.Path = pathlib.Path("recordings").joinpath(
-            str(user_id)).joinpath(prefix).joinpath(f'{format_timestamp(timestamp)}.mp4')
+        path: pathlib.Path = pathlib.Path("recordings") /\
+            str(user_id) / prefix / f'{format_timestamp(timestamp)}.mp4'
         path.parent.mkdir(exist_ok=True, parents=True)
         return str(path)
 
     def is_next_chunk(now):
         difference = now - last_timestamp
-        return difference > 60 * 5
+        return difference > (60 * 5)
 
-    try:
-        while _recording[user_id]:
+    _recording[user_id] = True
+    while _recording[user_id]:
+        try:
             now = time.time()
             if capture is None or is_next_chunk(now):
                 capture = cv2.VideoCapture(url)
+                if not capture.isOpened():
+                    raise ConnectionError(f"Couldn't connect to stream")
 
             rval, frame = capture.read()
             if not rval:
-                continue
+                raise ConnectionError(f"Couldn't read frame")
 
             if writer is None or is_next_chunk(now):
                 path = get_file(now)
@@ -69,14 +73,17 @@ def record_thread(user_id: str, url: str, prefix: str):
                 last_timestamp = now
 
             writer.write(frame)
-    finally:
-        _recording[user_id] = False
+        except Exception as e:
+            logging.warn(f'Error while recording for user {user_id}: {e}')
+            last_timestamp = 0
 
-        if writer is not None:
-            writer.release()
+            if writer is not None:
+                writer.release()
+            writer = None
 
-        if capture is not None:
-            capture.release()
+            if capture is not None:
+                capture.release()
+            capture = None
 
 
 @ bp.route('/start', methods=("POST", ))
@@ -92,9 +99,8 @@ def start_record():
     session_utils.set_url(url)
     session_utils.set_prefix(prefix)
 
-    _recording[user_id] = True
     threading.Thread(target=record_thread,
-                     args=(user_id, url, prefix)).start()
+                     args=(get_db(), user_id, url, prefix)).start()
 
     return redirect(url_for('index'))
 

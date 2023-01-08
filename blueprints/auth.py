@@ -1,6 +1,7 @@
 import functools
+from sqlite3 import IntegrityError
 
-from flask import Blueprint
+from flask import Blueprint, current_app
 from flask import flash
 from flask import g
 from flask import redirect
@@ -22,7 +23,8 @@ def login_required(view):
     @functools.wraps(view)
     def wrapped_view(**kwargs):
         if g.user is None:
-            return redirect(url_for("auth.login"))
+            url = url_for("auth.login")
+            return redirect(url)
 
         return view(**kwargs)
 
@@ -38,9 +40,7 @@ def load_logged_in_user():
     if user_id is None:
         g.user = None
     else:
-        g.user = (
-            get_db().execute("SELECT * FROM user WHERE id = ?", (user_id,)).fetchone()
-        )
+        g.user = get_db().user_db.get(user_id=user_id)
 
 
 @bp.route("/register", methods=("GET", "POST"))
@@ -53,7 +53,7 @@ def register():
     if request.method == "POST":
         username = request.form["username"]
         password = request.form["password"]
-        db = get_db()
+        db = get_db().user_db
         error = None
 
         if not username:
@@ -63,12 +63,9 @@ def register():
 
         if error is None:
             try:
-                db.execute(
-                    "INSERT INTO user (username, password) VALUES (?, ?)",
-                    (username, generate_password_hash(password)),
-                )
-                db.commit()
-            except db.IntegrityError:
+                db.set(username=username,
+                       password=generate_password_hash(password))
+            except IntegrityError:
                 # The username was already taken, which caused the
                 # commit to fail. Show a validation error.
                 error = f"User {username} is already registered."
@@ -87,11 +84,9 @@ def login():
     if request.method == "POST":
         username = request.form["username"]
         password = request.form["password"]
-        db = get_db()
+        db = get_db().user_db
         error = None
-        user = db.execute(
-            "SELECT * FROM user WHERE username = ?", (username,)
-        ).fetchone()
+        user = db.get(username=username)
 
         if user is None:
             error = "Incorrect username."
@@ -101,7 +96,7 @@ def login():
         if error is None:
             # store the user id in a new session and return to the index
             session.clear()
-            session["user_id"] = user["id"]
+            session["user_id"] = user["user_id"]
             return redirect(url_for("index"))
 
         flash(error)
