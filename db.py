@@ -71,20 +71,8 @@ class UserDatabaseConnection(DatabaseConnection):
     def table_name(self):
         return "user"
 
-    def get_password(self, user_id: Union[int, str]):
-        return self.get(user_id=user_id)['password']
-
-    def get_username(self, user_id: Union[int, str]):
-        return self.get(user_id=user_id)['username']
-
     def set(self, username: str, password: str):
         return super()._set(username=username, password=password)
-
-    def update_password(self, user_id: Union[int, str], password: str):
-        return self.update(user_id=user_id, password=password)
-
-    def update_username(self, user_id: Union[int, str], username: str):
-        return self.update(user_id=user_id, username=username)
 
 
 class Database:
@@ -124,24 +112,3 @@ if __name__ == '__main__':
 
     init_db(path)
     db = UserDatabaseConnection(path)
-
-    username, password = "test", "1234"
-
-    id = db.set(username=username, password=password)
-    assert username == db.get_username(id)
-    assert password == db.get_password(id)
-
-    new_username, new_password = password, username
-    db.update_password(user_id=id, password=new_password)
-    assert new_password == db.get_password(id)
-
-    db.update_username(user_id=id, username=new_username)
-    assert new_username == db.get_username(id)
-
-    id = db.update(user_id=id, username=username, password=password)
-    assert username == db.get_username(id)
-    assert password == db.get_password(id)
-
-    del db
-
-    pathlib.Path(path).unlink(missing_ok=True)
