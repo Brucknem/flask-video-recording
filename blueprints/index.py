@@ -1,3 +1,7 @@
+import glob
+import io
+from zipfile import ZipFile
+import zipfile
 from flask import current_app, send_file
 import os
 import pathlib
@@ -40,6 +44,15 @@ def on_enter_in_text():
 @ login_required
 def download(path):
     user_id = session.get('user_id')
-    path = pathlib.Path(current_app.root_path) / \
+    target = pathlib.Path(current_app.root_path) / \
         'recordings' / str(user_id) / path
-    return send_file(str(path))
+
+    stream = io.BytesIO()
+    with ZipFile(stream, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for file in glob.glob(os.path.join(target, '*.mp4')):
+            zf.write(file, os.path.basename(file))
+    stream.seek(0)
+    return send_file(
+        stream,
+        as_attachment=True,
+        download_name=f'{path}.zip')
