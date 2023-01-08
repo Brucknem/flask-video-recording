@@ -10,7 +10,7 @@ from flask import Blueprint, redirect, render_template, request, send_from_direc
 
 from blueprints.auth import login_required
 from flask import session
-from utils import extract_host, get_recordings
+from utils import extract_host, get_local_ip, get_recordings
 from database import is_true, user_data_db
 
 
@@ -25,7 +25,7 @@ def index():
 
     preview_url = str(values['url'])
     if (host := extract_host(preview_url)) in ['0.0.0.0', '127.0.0.1']:
-        external_ip = socket.gethostbyname(socket.gethostname())
+        external_ip = get_local_ip()
         print("external_ip", external_ip)
         preview_url = preview_url.replace(host, external_ip)
 
