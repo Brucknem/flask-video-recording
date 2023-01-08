@@ -12,36 +12,39 @@ from database import is_true, user_data_db, UserdataDatabaseConnection
 bp = Blueprint("record", __name__, url_prefix='/record')
 
 
+def get_file(user_id, prefix, timestamp):
+    path: pathlib.Path = pathlib.Path("recordings") /\
+        str(user_id) / prefix / f'{format_timestamp(timestamp)}.mp4'
+    path.parent.mkdir(exist_ok=True, parents=True)
+    return str(path)
+
+
+def is_next_chunk(last_timestamp, now):
+    difference = now - last_timestamp
+    return difference > (60 * 5)
+
+
+def release_if_present(releasable):
+    if releasable is not None:
+        releasable.release()
+    return None
+
+
 def record_thread(user_id: int, location: str):
     connection = UserdataDatabaseConnection(location)
 
     url = connection.get(user_id=user_id)['url']
     prefix = connection.get(user_id=user_id)['prefix']
+    prefix = (prefix + '_' if prefix else prefix) + format_timestamp()
 
-    if prefix:
-        prefix = pathlib.Path(prefix) / format_timestamp()
-    else:
-        prefix = format_timestamp()
-
-    writer = None
-    capture = None
+    writer, capture = None, None
     last_timestamp = 0
-
-    def get_file(timestamp):
-        path: pathlib.Path = pathlib.Path("recordings") /\
-            str(user_id) / prefix / f'{format_timestamp(timestamp)}.mp4'
-        path.parent.mkdir(exist_ok=True, parents=True)
-        return str(path)
-
-    def is_next_chunk(now):
-        difference = now - last_timestamp
-        return difference > (60 * 5)
 
     connection.update(user_id=user_id, recording=True)
     while is_true(connection.get(user_id=user_id)['recording']):
         try:
             now = time.time()
-            if capture is None or is_next_chunk(now):
+            if capture is None or is_next_chunk(last_timestamp, now):
                 capture = cv2.VideoCapture(url)
                 if not capture.isOpened():
                     raise ConnectionError(f"Couldn't connect to stream")
@@ -50,8 +53,8 @@ def record_thread(user_id: int, location: str):
             if not rval:
                 raise ConnectionError(f"Couldn't read frame")
 
-            if writer is None or is_next_chunk(now):
-                path = get_file(now)
+            if writer is None or is_next_chunk(last_timestamp, now):
+                path = get_file(user_id, prefix, now)
 
                 height, width, _ = frame.shape
                 size = (width, height)
@@ -61,21 +64,15 @@ def record_thread(user_id: int, location: str):
             if is_true(connection.get(user_id=user_id)['flip']):
                 frame = cv2.flip(frame, 0)
 
-            if is_next_chunk(now):
+            if is_next_chunk(last_timestamp, now):
                 last_timestamp = now
 
             writer.write(frame)
         except Exception as e:
             logging.warn(f'Error while recording for user {user_id}: {e}')
             last_timestamp = 0
-
-            if writer is not None:
-                writer.release()
-            writer = None
-
-            if capture is not None:
-                capture.release()
-            capture = None
+            writer = release_if_present(writer)
+            capture = release_if_present(capture)
 
 
 @ bp.route('/start', methods=("POST", ))

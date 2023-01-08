@@ -1,7 +1,7 @@
 import functools
 from sqlite3 import IntegrityError
 
-from flask import Blueprint, current_app
+from flask import Blueprint
 from flask import flash
 from flask import g
 from flask import redirect
