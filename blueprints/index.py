@@ -1,3 +1,4 @@
+import socket
 import glob
 import io
 from zipfile import ZipFile
@@ -9,8 +10,9 @@ from flask import Blueprint, redirect, render_template, request, send_from_direc
 
 from blueprints.auth import login_required
 from flask import session
-from utils import get_recordings
+from utils import extract_host, get_recordings
 from database import is_true, user_data_db
+
 
 bp = Blueprint("index", __name__)
 
@@ -21,9 +23,15 @@ def index():
     user_id = session.get('user_id')
     values = user_data_db().get(user_id=user_id)
 
+    preview_url = str(values['url'])
+    if (host := extract_host(preview_url)) in ['0.0.0.0', '127.0.0.1']:
+        external_ip = socket.gethostbyname(socket.gethostname())
+        preview_url = preview_url.replace(host, external_ip)
+
     recordings = get_recordings(user_id)
     return render_template('index.html',
                            url=values['url'],
+                           preview_url=preview_url,
                            prefix=values['prefix'],
                            flip=is_true(values['flip']),
                            recording=is_true(values['recording']),

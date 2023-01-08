@@ -69,7 +69,6 @@ def record_thread(user_id: int, location: str):
 
             cv2.putText(frame, format_timestamp(now), (0, 24), cv2.FONT_HERSHEY_SIMPLEX,
                         1, (255, 255, 255), 2, cv2.LINE_AA)
-            cv2.imwrite(path + 'pillar_text.jpg', frame)
             writer.write(frame)
         except Exception as e:
             logging.warn(f'Error while recording for user {user_id}: {e}')

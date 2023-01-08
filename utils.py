@@ -1,6 +1,15 @@
 from datetime import datetime
 import pathlib
 import time
+import re
+
+
+def extract_host(url: str):
+    matcher = re.search('[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+', str(url))
+    try:
+        return matcher.group(0)
+    except:
+        return None
 
 
 def format_timestamp(timestamp=None):
