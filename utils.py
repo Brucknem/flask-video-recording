@@ -15,7 +15,7 @@ if __name__ == '__main__':
 
 def get_recordings(user_id):
     path = pathlib.Path("recordings")
-    return [str(pathlib.Path(*p.parts[2:])) for p in path.rglob(f"{user_id}/*/*.mp4")]
+    return [str(pathlib.Path(*p.parts[2:])) for p in path.rglob(f"{user_id}/**/*.mp4")]
     # return [str(p) for p in path.rglob(f"{user_id}/*/*.mp4")]
 
 

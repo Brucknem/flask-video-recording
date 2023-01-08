@@ -2,29 +2,21 @@ import logging
 import pathlib
 import threading
 import time
-from flask import Blueprint, redirect, render_template, request, session, url_for
+from flask import Blueprint, current_app, redirect, render_template, request, session, url_for
 import cv2
 
 from blueprints.auth import login_required
-from db import Database
-import session_utils
 from utils import format_timestamp
-import db
+from database import is_true, user_data_db, UserdataDatabaseConnection
 
 bp = Blueprint("record", __name__, url_prefix='/record')
 
-_recording = {}
-_flip_image = {}
 
+def record_thread(user_id: int, location: str):
+    connection = UserdataDatabaseConnection(location)
 
-def is_recording(user_id: str):
-    return _recording.get(user_id, False)
-
-
-def record_thread(connection, user_id: str, url: str, prefix: str):
-    global _recording, _flip_image
-
-    url = db.get_url(user_id, connection)
+    url = connection.get(user_id=user_id)['url']
+    prefix = connection.get(user_id=user_id)['prefix']
 
     if prefix:
         prefix = pathlib.Path(prefix) / format_timestamp()
@@ -45,8 +37,8 @@ def record_thread(connection, user_id: str, url: str, prefix: str):
         difference = now - last_timestamp
         return difference > (60 * 5)
 
-    _recording[user_id] = True
-    while _recording[user_id]:
+    connection.update(user_id=user_id, recording=True)
+    while is_true(connection.get(user_id=user_id)['recording']):
         try:
             now = time.time()
             if capture is None or is_next_chunk(now):
@@ -66,7 +58,7 @@ def record_thread(connection, user_id: str, url: str, prefix: str):
                 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
                 writer = cv2.VideoWriter(path, fourcc, 20.0, size)
 
-            if _flip_image.get(user_id, False):
+            if is_true(connection.get(user_id=user_id)['flip']):
                 frame = cv2.flip(frame, 0)
 
             if is_next_chunk(now):
@@ -89,18 +81,18 @@ def record_thread(connection, user_id: str, url: str, prefix: str):
 @ bp.route('/start', methods=("POST", ))
 @ login_required
 def start_record():
-    user_id = session_utils.get_user_id()
-    if is_recording(user_id):
+    user_id = session.get('user_id')
+    if is_true(user_data_db().get(user_id=user_id)['recording']):
         return redirect(url_for('index'))
 
     url = request.form['url']
     prefix = request.form['prefix']
 
-    session_utils.set_url(url)
-    session_utils.set_prefix(prefix)
+    db = user_data_db()
+    db.update(user_id=user_id, url=url, prefix=prefix)
 
     threading.Thread(target=record_thread,
-                     args=(get_db(), user_id, url, prefix)).start()
+                     args=(user_id, current_app.config['DATABASE'])).start()
 
     return redirect(url_for('index'))
 
@@ -108,14 +100,15 @@ def start_record():
 @ bp.route('/stop', methods=("POST", ))
 @ login_required
 def stop_record():
-    _recording[session_utils.get_user_id()] = False
+    user_id = session.get('user_id')
+    user_data_db().update(user_id=user_id, recording=False)
     return redirect(url_for('index'))
 
 
 @ bp.route('/flip', methods=('POST', ))
 def toggle_flip_image():
-    session_utils.toggle_flip()
-    flip = session_utils.get_flip()
-    _flip_image[session_utils.get_user_id()] = flip
+    user_id = session.get('user_id')
+    flip = is_true(user_data_db().get(user_id=user_id)['flip'])
+    user_data_db().update(user_id=user_id, flip=not flip)
 
     return "Success"

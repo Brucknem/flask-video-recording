@@ -1,3 +1,4 @@
+import atexit
 from dataclasses import dataclass
 import pathlib
 import sqlite3
@@ -75,12 +76,26 @@ class UserDatabaseConnection(DatabaseConnection):
 
 class UserdataDatabaseConnection(DatabaseConnection):
 
+    @dataclass
+    class Row:
+        user_id: int
+        url: str
+        prefix: str
+        flip: bool
+        recording: bool
+
     @property
     def table_name(self):
         return "user_data"
 
     def set(self, user_id: int):
         return super()._set(user_id=user_id)
+
+    def reset(self):
+        self.connection.execute(
+            f"UPDATE {self.table_name} SET recording = 0",
+        )
+        self.connection.commit()
 
 
 class Database:
@@ -93,18 +108,22 @@ class Database:
             self.user_db.connection.executescript(f.read())
 
 
-def get_db():
+def get():
     return Database(current_app.config["DATABASE"])
 
 
-def init_db():
-    get_db().init("schema.sql")
+def user_data_db() -> UserdataDatabaseConnection:
+    return get().user_data_db
+
+
+def init():
+    get().init("schema.sql")
 
 
 @ click.command("init-db")
 def init_db_command():
     """Clear existing data and create new tables."""
-    init_db()
+    init()
     click.echo("Initialized the database.")
 
 
@@ -115,8 +134,12 @@ def init_app(app):
     app.cli.add_command(init_db_command)
 
 
+def is_true(value: str):
+    return value == 'True' or value == '1'
+
+
 if __name__ == '__main__':
     path = "test.sqlite"
 
-    init_db(path)
+    init(path)
     db = UserDatabaseConnection(path)

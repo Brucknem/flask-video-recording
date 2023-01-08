@@ -11,13 +11,12 @@ CREATE TABLE user (
 );
 
 CREATE TABLE user_data (
-  user_data_id INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id INTEGER NOT NULL,
+  user_id INTEGER PRIMARY KEY,
 
-  url TEXT DEFAULT "",
-  prefix TEXT DEFAULT "",
-  flip BIT DEFAULT 0,
-  recording BIT DEFAULT 0,
+  url TEXT DEFAULT "http://192.168.178.20:5000/video_feed/pi2",
+  prefix TEXT DEFAULT "video",
+  flip BIT DEFAULT FALSE,
+  recording BIT DEFAULT FALSE,
 
   FOREIGN KEY (user_id) REFERENCES user (user_id)
 );

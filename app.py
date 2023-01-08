@@ -4,7 +4,7 @@ import os
 from flask import Flask
 
 # register the database commands
-from db import init_app
+from database import init_app, UserdataDatabaseConnection
 
 # apply the blueprints to the app
 from blueprints import auth
@@ -52,6 +52,8 @@ def create_app(test_config=None):
     # app.route, while giving the blog blueprint a url_prefix, but for
     # the tutorial the blog will be the main index
     app.add_url_rule("/", endpoint="index")
+
+    UserdataDatabaseConnection(app.config['DATABASE']).reset()
 
     return app
 
